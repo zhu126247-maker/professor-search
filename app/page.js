@@ -11,9 +11,19 @@ const emptyForm = {
   keywords: "",
 };
 
+function splitKeywords(keywords) {
+  if (!keywords) return [];
+
+  return keywords
+    .split(",")
+    .map((word) => word.trim())
+    .filter(Boolean);
+}
+
 export default function Home() {
   const [professors, setProfessors] = useState([]);
   const [search, setSearch] = useState("");
+  const [departmentFilter, setDepartmentFilter] = useState("All");
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -40,6 +50,7 @@ export default function Home() {
     setEditingId(null);
     setForm(emptyForm);
     setShowForm(true);
+    window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
   function startEdit(prof) {
@@ -63,89 +74,100 @@ export default function Home() {
   }
 
   async function handleSubmit(e) {
-  e.preventDefault();
+    e.preventDefault();
 
-  if (editingId) {
+    if (editingId) {
+      const confirmed = window.confirm(
+        "Are you sure you want to save these changes? This will update the Airtable database."
+      );
+
+      if (!confirmed) return;
+    }
+
+    setLoading(true);
+
+    try {
+      const method = editingId ? "PATCH" : "POST";
+      const body = editingId ? { id: editingId, ...form } : form;
+
+      const res = await fetch("/api/professors", {
+        method,
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      if (!res.ok) {
+        const errorData = await res.json();
+        alert(
+          "Failed to save professor: " +
+            (errorData.message || errorData.error)
+        );
+        return;
+      }
+
+      const savedProfessor = await res.json();
+
+      if (editingId) {
+        setProfessors((prev) =>
+          prev.map((prof) =>
+            prof.id === savedProfessor.id ? savedProfessor : prof
+          )
+        );
+      } else {
+        setProfessors((prev) => [savedProfessor, ...prev]);
+      }
+
+      cancelForm();
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(prof) {
     const confirmed = window.confirm(
-      "Are you sure you want to save these changes? This will update the Airtable database."
+      `ARE YOU SURE you want to delete ${prof.name}? This will permanently remove the record from Airtable.`
     );
 
     if (!confirmed) return;
-  }
 
-  setLoading(true);
+    const secondConfirmed = window.confirm(
+      "Final warning: this deletion is permanent. Click OK to delete, or Cancel to stop."
+    );
 
-  try {
-    const method = editingId ? "PATCH" : "POST";
-    const body = editingId ? { id: editingId, ...form } : form;
+    if (!secondConfirmed) return;
 
     const res = await fetch("/api/professors", {
-      method,
+      method: "DELETE",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({ id: prof.id }),
     });
 
     if (!res.ok) {
       const errorData = await res.json();
       alert(
-        "Failed to save professor: " +
+        "Failed to delete professor: " +
           (errorData.message || errorData.error)
       );
       return;
     }
 
-    const savedProfessor = await res.json();
-
-    if (editingId) {
-      setProfessors((prev) =>
-        prev.map((prof) =>
-          prof.id === savedProfessor.id ? savedProfessor : prof
-        )
-      );
-    } else {
-      setProfessors((prev) => [savedProfessor, ...prev]);
-    }
-
-    cancelForm();
-  } finally {
-    setLoading(false);
-  }
-}
-
-  async function handleDelete(prof) {
-  const confirmed = window.confirm(
-    `ARE YOU SURE you want to delete ${prof.name}? This will permanently remove the record from Airtable.`
-  );
-
-  if (!confirmed) return;
-
-  const secondConfirmed = window.confirm(
-    "Final warning: this deletion is permanent. Click OK to delete, or Cancel to stop."
-  );
-
-  if (!secondConfirmed) return;
-
-  const res = await fetch("/api/professors", {
-    method: "DELETE",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({ id: prof.id }),
-  });
-
-  if (!res.ok) {
-    const errorData = await res.json();
-    alert(
-      "Failed to delete professor: " +
-        (errorData.message || errorData.error)
-    );
-    return;
+    setProfessors((prev) => prev.filter((item) => item.id !== prof.id));
   }
 
-  setProfessors((prev) => prev.filter((item) => item.id !== prof.id));
-}
+  const departments = [
+    "All",
+    ...Array.from(
+      new Set(
+        professors
+          .map((prof) => prof.department)
+          .filter(Boolean)
+      )
+    ).sort(),
+  ];
 
   const filtered = professors.filter((prof) => {
     const text = `
@@ -157,169 +179,289 @@ export default function Home() {
       ${prof.personalPage}
     `.toLowerCase();
 
-    return text.includes(search.toLowerCase());
+    const matchesSearch = text.includes(search.toLowerCase());
+    const matchesDepartment =
+      departmentFilter === "All" || prof.department === departmentFilter;
+
+    return matchesSearch && matchesDepartment;
   });
 
   return (
-    <main className="min-h-screen p-8 max-w-5xl mx-auto">
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <h1 className="text-3xl font-bold">Professor Search Database</h1>
+    <main className="min-h-screen bg-[#F6F3EA] text-[#1F2933]">
+      <header className="border-b border-[#D8D2C4] bg-[#00356B] text-white">
+        <div className="mx-auto max-w-6xl px-6 py-10">
+          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-[#D7E3D1]">
+            CBEY
+          </p>
 
-        <button
-          onClick={startAdd}
-          className="border rounded-lg px-4 py-2 shadow-sm"
-        >
-          Add Professor
-        </button>
-      </div>
+          <h1 className="max-w-4xl font-serif text-4xl font-semibold leading-tight md:text-5xl">
+            Environmental Faculty Directory
+          </h1>
 
-      {showForm && (
-        <form
-          onSubmit={handleSubmit}
-          className="border rounded-lg p-4 mb-6 grid gap-3 shadow-sm"
-        >
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold">
-              {editingId ? "Edit Professor" : "Add Professor"}
-            </h2>
+          <p className="mt-5 max-w-3xl text-base leading-7 text-[#E6EEF7] md:text-lg">
+            Search faculty working across climate, energy, markets, policy,
+            conservation, and environmental systems.
+          </p>
+        </div>
+      </header>
 
-            <button
-              type="button"
-              onClick={cancelForm}
-              className="border rounded-lg px-3 py-1"
-            >
-              Cancel
-            </button>
+      <section className="border-b border-[#D8D2C4] bg-white">
+        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between">
+          <div>
+            <p className="text-sm font-semibold uppercase tracking-wide text-[#3F6F4E]">
+              Searchable research database
+            </p>
+            <p className="mt-1 text-sm text-gray-600">
+              Browse by name, department, role, webpage, or associated research
+              keywords.
+            </p>
           </div>
-
-          <input
-            className="border rounded-lg p-3"
-            placeholder="Name"
-            value={form.name}
-            onChange={(e) => updateForm("name", e.target.value)}
-            required
-          />
-
-          <input
-            className="border rounded-lg p-3"
-            placeholder="Department"
-            value={form.department}
-            onChange={(e) => updateForm("department", e.target.value)}
-          />
-
-          <input
-            className="border rounded-lg p-3"
-            placeholder="Role"
-            value={form.role}
-            onChange={(e) => updateForm("role", e.target.value)}
-          />
-
-          <input
-            className="border rounded-lg p-3"
-            placeholder="University webpage"
-            value={form.webpage}
-            onChange={(e) => updateForm("webpage", e.target.value)}
-          />
-
-          <input
-            className="border rounded-lg p-3"
-            placeholder="Personal page/lab"
-            value={form.personalPage}
-            onChange={(e) => updateForm("personalPage", e.target.value)}
-          />
-
-          <textarea
-            className="border rounded-lg p-3"
-            placeholder="Key words, separated by commas"
-            value={form.keywords}
-            onChange={(e) => updateForm("keywords", e.target.value)}
-          />
 
           <button
-            type="submit"
-            disabled={loading}
-            className="border rounded-lg px-4 py-2 shadow-sm"
+            onClick={startAdd}
+            className="border border-[#00356B] bg-[#00356B] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white hover:text-[#00356B]"
           >
-            {loading
-              ? "Saving..."
-              : editingId
-              ? "Save Changes"
-              : "Save Professor"}
+            Add Professor
           </button>
-        </form>
-      )}
+        </div>
+      </section>
 
-      <input
-        className="w-full border rounded-lg p-3 mb-6"
-        placeholder="Search by name, department, role, or keyword..."
-        value={search}
-        onChange={(e) => setSearch(e.target.value)}
-      />
+      <section className="mx-auto max-w-6xl px-6 py-8">
+        {showForm && (
+          <form
+            onSubmit={handleSubmit}
+            className="mb-8 border border-[#CFC7B8] bg-white p-5"
+          >
+            <div className="mb-4 flex items-center justify-between gap-4 border-b border-[#E4DED2] pb-3">
+              <h2 className="font-serif text-2xl font-semibold text-[#00356B]">
+                {editingId ? "Edit Professor" : "Add Professor"}
+              </h2>
 
-      <p className="mb-4 text-gray-600">
-        Showing {filtered.length} professor(s)
-      </p>
-
-      <div className="grid gap-4">
-        {filtered.map((prof) => (
-          <div key={prof.id} className="border rounded-lg p-4 shadow-sm">
-            <div className="flex items-start justify-between gap-4">
-              <div>
-                <h2 className="text-xl font-semibold">{prof.name}</h2>
-                <p className="text-gray-600">{prof.department}</p>
-              </div>
-
-              <div className="flex gap-2">
-                <button
-                  onClick={() => startEdit(prof)}
-                  className="border rounded-lg px-3 py-1"
-                >
-                  Edit
-                </button>
-
-                <button
-                  onClick={() => handleDelete(prof)}
-                  className="border rounded-lg px-3 py-1"
-                >
-                  Delete
-                </button>
-              </div>
+              <button
+                type="button"
+                onClick={cancelForm}
+                className="border border-[#CFC7B8] px-3 py-1.5 text-sm hover:bg-[#F6F3EA]"
+              >
+                Cancel
+              </button>
             </div>
 
-            {prof.role && (
-              <p className="mt-1">
-                <strong>Role:</strong> {prof.role}
+            <div className="grid gap-3 md:grid-cols-2">
+              <input
+                className="border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B]"
+                placeholder="Name"
+                value={form.name}
+                onChange={(e) => updateForm("name", e.target.value)}
+                required
+              />
+
+              <input
+                className="border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B]"
+                placeholder="Department"
+                value={form.department}
+                onChange={(e) => updateForm("department", e.target.value)}
+              />
+
+              <input
+                className="border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B]"
+                placeholder="Role"
+                value={form.role}
+                onChange={(e) => updateForm("role", e.target.value)}
+              />
+
+              <input
+                className="border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B]"
+                placeholder="University webpage"
+                value={form.webpage}
+                onChange={(e) => updateForm("webpage", e.target.value)}
+              />
+
+              <input
+                className="border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B] md:col-span-2"
+                placeholder="Personal page/lab"
+                value={form.personalPage}
+                onChange={(e) => updateForm("personalPage", e.target.value)}
+              />
+
+              <textarea
+                className="min-h-24 border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B] md:col-span-2"
+                placeholder="Key words, separated by commas"
+                value={form.keywords}
+                onChange={(e) => updateForm("keywords", e.target.value)}
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loading}
+              className="mt-4 border border-[#3F6F4E] bg-[#3F6F4E] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white hover:text-[#3F6F4E]"
+            >
+              {loading
+                ? "Saving..."
+                : editingId
+                ? "Save Changes"
+                : "Save Professor"}
+            </button>
+          </form>
+        )}
+
+        <div className="grid gap-6 md:grid-cols-[270px_1fr]">
+          <aside className="h-fit border border-[#CFC7B8] bg-white p-5">
+            <h2 className="border-b border-[#E4DED2] pb-3 font-serif text-2xl font-semibold text-[#00356B]">
+              Filters
+            </h2>
+
+            <div className="mt-5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Search
+              </label>
+              <input
+                className="mt-2 w-full border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B]"
+                placeholder="Name, role, keyword..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+              />
+            </div>
+
+            <div className="mt-5">
+              <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
+                Department
+              </label>
+              <select
+                className="mt-2 w-full border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B]"
+                value={departmentFilter}
+                onChange={(e) => setDepartmentFilter(e.target.value)}
+              >
+                {departments.map((dept) => (
+                  <option key={dept} value={dept}>
+                    {dept}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="mt-6 border-t border-[#E4DED2] pt-4">
+              <p className="text-sm text-gray-600">
+                Showing{" "}
+                <span className="font-semibold text-[#00356B]">
+                  {filtered.length}
+                </span>{" "}
+                of{" "}
+                <span className="font-semibold text-[#00356B]">
+                  {professors.length}
+                </span>{" "}
+                professor(s)
               </p>
-            )}
+            </div>
+          </aside>
 
-            <p className="mt-2">
-              <strong>Keywords:</strong> {prof.keywords}
-            </p>
+          <section>
+            <div className="mb-4 flex items-end justify-between border-b border-[#CFC7B8] pb-3">
+              <div>
+                <p className="text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]">
+                  Results
+                </p>
+                <h2 className="font-serif text-2xl font-semibold text-[#00356B]">
+                  Faculty Profiles
+                </h2>
+              </div>
+            </div>
 
-            <div className="mt-3 flex gap-4">
-              {prof.webpage && (
-                <a
-                  className="text-blue-600 underline"
-                  href={prof.webpage}
-                  target="_blank"
+            <div className="grid gap-4">
+              {filtered.map((prof) => (
+                <article
+                  key={prof.id}
+                  className="border border-[#CFC7B8] bg-white p-5 transition hover:border-[#00356B]"
                 >
-                  University Webpage
-                </a>
-              )}
+                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
+                    <div>
+                      <h3 className="font-serif text-2xl font-semibold text-[#00356B]">
+                        {prof.name}
+                      </h3>
 
-              {prof.personalPage && (
-                <a
-                  className="text-blue-600 underline"
-                  href={prof.personalPage}
-                  target="_blank"
-                >
-                  Personal/Lab Page
-                </a>
+                      {prof.role && (
+                        <p className="mt-1 text-base text-[#1F2933]">
+                          {prof.role}
+                        </p>
+                      )}
+
+                      {prof.department && (
+                        <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]">
+                          {prof.department}
+                        </p>
+                      )}
+                    </div>
+
+                    <div className="flex shrink-0 gap-2">
+                      <button
+                        onClick={() => startEdit(prof)}
+                        className="border border-[#CFC7B8] px-3 py-1.5 text-sm hover:border-[#00356B] hover:text-[#00356B]"
+                      >
+                        Edit
+                      </button>
+
+                      <button
+                        onClick={() => handleDelete(prof)}
+                        className="border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  {prof.keywords && (
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      {splitKeywords(prof.keywords).map((keyword) => (
+                        <span
+                          key={keyword}
+                          className="border border-[#D8D2C4] bg-[#F6F3EA] px-2.5 py-1 text-xs text-[#1F2933]"
+                        >
+                          {keyword}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="mt-5 flex flex-wrap gap-5 border-t border-[#E4DED2] pt-4">
+                    {prof.webpage && (
+                      <a
+                        className="text-sm font-semibold text-[#00356B] underline underline-offset-4 hover:text-[#3F6F4E]"
+                        href={prof.webpage}
+                        target="_blank"
+                      >
+                        University Webpage
+                      </a>
+                    )}
+
+                    {prof.personalPage && (
+                      <a
+                        className="text-sm font-semibold text-[#00356B] underline underline-offset-4 hover:text-[#3F6F4E]"
+                        href={prof.personalPage}
+                        target="_blank"
+                      >
+                        Personal/Lab Page
+                      </a>
+                    )}
+                  </div>
+                </article>
+              ))}
+
+              {filtered.length === 0 && (
+                <div className="border border-[#CFC7B8] bg-white p-8 text-center text-gray-600">
+                  No professors match your search.
+                </div>
               )}
             </div>
-          </div>
-        ))}
-      </div>
+          </section>
+        </div>
+      </section>
+
+      <footer className="border-t border-[#D8D2C4] bg-white">
+        <div className="mx-auto max-w-6xl px-6 py-6 text-sm text-gray-600">
+          Built as a searchable directory for CBEY-related environmental
+          research connections.
+        </div>
+      </footer>
     </main>
   );
 }
