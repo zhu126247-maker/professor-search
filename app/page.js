@@ -51,18 +51,19 @@ function getEasterEgg(search) {
   if (
     query.includes("handsome dan") ||
     query.includes("bulldog") ||
-    query.includes("Dan") ||
+    query.includes("handsome") ||
+    query.includes("dan") ||
     query.includes("dog")
   ) {
     return "Handsome Dan approves this directory.";
   }
 
   if (query.includes("coffee") || query.includes("caffeine")) {
-    return "No exact match, but several professors probably need some.";
+    return "several professors probably need some";
   }
 
   if (query.includes("quantum")) {
-    return "Careful. The results may change when observed.";
+    return "Careful. The results may change when observed :)";
   }
 
   if (query.includes("carbon")) {
@@ -741,7 +742,7 @@ export default function Home() {
           </span>
 
           <span className="hidden text-[#3F6F4E] group-hover:inline">
-            🌱 Built with caffeine, Airtable, and optimism.
+            🌱 Built with Airtable.
           </span>
         </div>
       </footer>
