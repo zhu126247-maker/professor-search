@@ -1,6 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
+
+const engagementOptions = [
+  "Commercialization - Lab to Market",
+  "Policy Acceleration",
+  "Applied Research",
+  "Teaching and Curriculum",
+];
 
 const emptyForm = {
   name: "",
@@ -9,6 +16,7 @@ const emptyForm = {
   personalPage: "",
   role: "",
   keywords: "",
+  engagement: [],
 };
 
 function splitKeywords(keywords) {
@@ -43,8 +51,7 @@ function getEasterEgg(search) {
   if (
     query.includes("handsome dan") ||
     query.includes("bulldog") ||
-    query.includes("dog") ||
-    query.includes("Dan")
+    query.includes("dog")
   ) {
     return "Handsome Dan approves this directory.";
   }
@@ -54,20 +61,41 @@ function getEasterEgg(search) {
   }
 
   if (query.includes("cbey")) {
-    return "Connecting business and the environment :)";
+    return "Connecting business and the environment.";
   }
 
   return null;
 }
 
+function toggleArrayValue(array, value) {
+  if (array.includes(value)) {
+    return array.filter((item) => item !== value);
+  }
+
+  return [...array, value];
+}
+
+function matchesAnySelected(values, selectedValues) {
+  if (selectedValues.length === 0) return true;
+
+  if (!Array.isArray(values) || values.length === 0) return false;
+
+  return values.some((value) => selectedValues.includes(value));
+}
+
 export default function Home() {
   const [professors, setProfessors] = useState([]);
   const [search, setSearch] = useState("");
-  const [departmentFilter, setDepartmentFilter] = useState("All");
+  const [selectedDepartments, setSelectedDepartments] = useState([]);
+  const [selectedEngagement, setSelectedEngagement] = useState([]);
+  const [openDropdown, setOpenDropdown] = useState(null);
   const [showForm, setShowForm] = useState(false);
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+
+  const departmentDropdownRef = useRef(null);
+  const engagementDropdownRef = useRef(null);
 
   async function loadProfessors() {
     const res = await fetch("/api/professors");
@@ -77,6 +105,28 @@ export default function Home() {
 
   useEffect(() => {
     loadProfessors();
+  }, []);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      const clickedDepartment =
+        departmentDropdownRef.current &&
+        departmentDropdownRef.current.contains(event.target);
+
+      const clickedEngagement =
+        engagementDropdownRef.current &&
+        engagementDropdownRef.current.contains(event.target);
+
+      if (!clickedDepartment && !clickedEngagement) {
+        setOpenDropdown(null);
+      }
+    }
+
+    document.addEventListener("mousedown", handleClickOutside);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+    };
   }, []);
 
   function updateForm(field, value) {
@@ -102,6 +152,7 @@ export default function Home() {
       personalPage: prof.personalPage || "",
       role: prof.role || "",
       keywords: prof.keywords || "",
+      engagement: Array.isArray(prof.engagement) ? prof.engagement : [],
     });
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -111,6 +162,13 @@ export default function Home() {
     setEditingId(null);
     setForm(emptyForm);
     setShowForm(false);
+  }
+
+  function toggleFormEngagement(option) {
+    setForm((prev) => ({
+      ...prev,
+      engagement: toggleArrayValue(prev.engagement, option),
+    }));
   }
 
   async function handleSubmit(e) {
@@ -198,14 +256,9 @@ export default function Home() {
     setProfessors((prev) => prev.filter((item) => item.id !== prof.id));
   }
 
-  const departments = [
-    "All",
-    ...Array.from(
-      new Set(
-        professors.flatMap((prof) => splitDepartments(prof.department))
-      )
-    ).sort(),
-  ];
+  const departments = Array.from(
+    new Set(professors.flatMap((prof) => splitDepartments(prof.department)))
+  ).sort();
 
   const filtered = professors.filter((prof) => {
     const text = `
@@ -215,17 +268,27 @@ export default function Home() {
       ${prof.keywords}
       ${prof.webpage}
       ${prof.personalPage}
+      ${Array.isArray(prof.engagement) ? prof.engagement.join(" ") : ""}
     `.toLowerCase();
 
     const professorDepartments = splitDepartments(prof.department);
+    const professorEngagement = Array.isArray(prof.engagement)
+      ? prof.engagement
+      : [];
 
     const matchesSearch = text.includes(search.toLowerCase());
 
-    const matchesDepartment =
-      departmentFilter === "All" ||
-      professorDepartments.includes(departmentFilter);
+    const matchesDepartment = matchesAnySelected(
+      professorDepartments,
+      selectedDepartments
+    );
 
-    return matchesSearch && matchesDepartment;
+    const matchesEngagement = matchesAnySelected(
+      professorEngagement,
+      selectedEngagement
+    );
+
+    return matchesSearch && matchesDepartment && matchesEngagement;
   });
 
   const easterEgg = getEasterEgg(search);
@@ -235,7 +298,7 @@ export default function Home() {
       <header className="bg-[#00356B] text-white">
         <div className="mx-auto max-w-6xl px-6 pt-20 pb-10">
           <p className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-[#D7E3D1]">
-            CBEY
+            Yale CBEY and PSIA
           </p>
 
           <h1 className="font-serif text-4xl font-semibold tracking-tight md:text-5xl">
@@ -251,25 +314,105 @@ export default function Home() {
 
       <section className="border-b border-[#D8D2C4] bg-white">
         <div className="mx-auto max-w-6xl px-6 py-4">
-          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+          <div className="flex flex-col gap-3 md:flex-row md:items-start">
             <input
               className="min-h-11 flex-1 border border-[#CFC7B8] bg-[#FBFAF7] px-4 text-sm outline-none focus:border-[#00356B]"
-              placeholder="Search by name, role, keyword, department, or webpage..."
+              placeholder="Search by name, role, keyword, department, webpage, or engagement..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
             />
 
-            <select
-              className="min-h-11 border border-[#CFC7B8] bg-[#FBFAF7] px-4 text-sm outline-none focus:border-[#00356B] md:w-64"
-              value={departmentFilter}
-              onChange={(e) => setDepartmentFilter(e.target.value)}
-            >
-              {departments.map((dept) => (
-                <option key={dept} value={dept}>
-                  {dept === "All" ? "All departments" : dept}
-                </option>
-              ))}
-            </select>
+            <div ref={departmentDropdownRef} className="relative md:w-40">
+              <button
+                type="button"
+                onClick={() =>
+                  setOpenDropdown(
+                    openDropdown === "departments" ? null : "departments"
+                  )
+                }
+                className="min-h-11 w-full border border-[#CFC7B8] bg-[#FBFAF7] px-3 py-3 text-left text-sm outline-none hover:border-[#00356B]"
+              >
+                Departments
+                {selectedDepartments.length > 0
+                  ? ` (${selectedDepartments.length})`
+                  : ""}
+              </button>
+
+              {openDropdown === "departments" && (
+                <div className="absolute z-20 mt-2 max-h-72 w-56 overflow-auto border border-[#CFC7B8] bg-white p-3 shadow-lg">
+                  {departments.map((dept) => (
+                    <label key={dept} className="mb-2 flex gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedDepartments.includes(dept)}
+                        onChange={() =>
+                          setSelectedDepartments((prev) =>
+                            toggleArrayValue(prev, dept)
+                          )
+                        }
+                      />
+                      {dept}
+                    </label>
+                  ))}
+
+                  {selectedDepartments.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedDepartments([])}
+                      className="mt-2 text-xs font-semibold text-[#00356B] underline"
+                    >
+                      Clear departments
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+
+            <div ref={engagementDropdownRef} className="relative md:w-48">
+              <button
+                type="button"
+                onClick={() =>
+                  setOpenDropdown(
+                    openDropdown === "engagement" ? null : "engagement"
+                  )
+                }
+                className="min-h-11 w-full border border-[#CFC7B8] bg-[#FBFAF7] px-3 py-3 text-left text-sm outline-none hover:border-[#00356B]"
+              >
+                Engagement
+                {selectedEngagement.length > 0
+                  ? ` (${selectedEngagement.length})`
+                  : ""}
+              </button>
+
+              {openDropdown === "engagement" && (
+                <div className="absolute z-20 mt-2 w-64 border border-[#CFC7B8] bg-white p-3 shadow-lg">
+                  {engagementOptions.map((option) => (
+                    <label key={option} className="mb-2 flex gap-2 text-sm">
+                      <input
+                        type="checkbox"
+                        checked={selectedEngagement.includes(option)}
+                        onChange={() =>
+                          setSelectedEngagement((prev) =>
+                            toggleArrayValue(prev, option)
+                          )
+                        }
+                      />
+                      {option}
+                    </label>
+                  ))}
+
+                  {selectedEngagement.length > 0 && (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedEngagement([])}
+                      className="mt-2 text-xs font-semibold text-[#00356B] underline"
+                    >
+                      Clear engagement
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
 
             <button
               onClick={startAdd}
@@ -364,6 +507,25 @@ export default function Home() {
               />
             </div>
 
+            <div className="mt-4 border-t border-[#E4DED2] pt-4">
+              <p className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]">
+                CBEY/PSIA Engagement
+              </p>
+
+              <div className="grid gap-2 md:grid-cols-2">
+                {engagementOptions.map((option) => (
+                  <label key={option} className="flex gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={form.engagement.includes(option)}
+                      onChange={() => toggleFormEngagement(option)}
+                    />
+                    {option}
+                  </label>
+                ))}
+              </div>
+            </div>
+
             <button
               type="submit"
               disabled={loading}
@@ -395,7 +557,10 @@ export default function Home() {
 
         <div className="divide-y divide-[#D8D2C4] border-y border-[#D8D2C4] bg-white">
           {filtered.map((prof) => (
-            <article key={prof.id} className="px-5 py-4 transition hover:bg-[#FBFAF7]">
+            <article
+              key={prof.id}
+              className="px-5 py-4 transition hover:bg-[#FBFAF7]"
+            >
               <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
                 <div>
                   <h3 className="font-serif text-2xl font-semibold text-[#00356B]">
@@ -418,6 +583,20 @@ export default function Home() {
                       ))}
                     </div>
                   )}
+
+                  {Array.isArray(prof.engagement) &&
+                    prof.engagement.length > 0 && (
+                      <div className="mt-2 flex flex-wrap gap-2">
+                        {prof.engagement.map((item) => (
+                          <span
+                            key={item}
+                            className="border border-[#CFC7B8] bg-[#FBFAF7] px-2 py-0.5 text-xs font-medium text-[#00356B]"
+                          >
+                            {item}
+                          </span>
+                        ))}
+                      </div>
+                    )}
                 </div>
 
                 <div className="flex shrink-0 gap-2">
@@ -485,7 +664,7 @@ export default function Home() {
           {filtered.length === 0 && (
             <div className="bg-white p-8 text-center text-gray-600">
               No matching faculty profiles found. Try a broader keyword,
-              department, or research area.
+              department, engagement type, or research area.
             </div>
           )}
         </div>
@@ -499,7 +678,7 @@ export default function Home() {
           </span>
 
           <span className="hidden text-[#3F6F4E] group-hover:inline">
-            🌱 Built with Airtable.
+            🌱 Built with caffeine, Airtable, and optimism.
           </span>
         </div>
       </footer>
