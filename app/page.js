@@ -51,13 +51,42 @@ function getEasterEgg(search) {
   if (
     query.includes("handsome dan") ||
     query.includes("bulldog") ||
+    query.includes("Dan") ||
     query.includes("dog")
   ) {
     return "Handsome Dan approves this directory.";
   }
 
+  if (query.includes("coffee") || query.includes("caffeine")) {
+    return "No exact match, but several professors probably need some.";
+  }
+
+  if (query.includes("quantum")) {
+    return "Careful. The results may change when observed.";
+  }
+
   if (query.includes("carbon")) {
     return "Carbon found. Now price it.";
+  }
+
+  if (query.includes("climate")) {
+    return "Searching for people working on the future.";
+  }
+
+  if (query.includes("yale")) {
+    return "That one was easy.";
+  }
+
+  if (query.includes("nothing")) {
+    return "Nothing found. Philosophically impressive.";
+  }
+
+  if (query.includes("meaning of life")) {
+    return "No exact match. Try philosophy, biology, or coffee.";
+  }
+
+  if (query.includes("help")) {
+    return "Try searching by professor name, department, keyword, webpage, or engagement type.";
   }
 
   if (query.includes("cbey")) {
@@ -93,6 +122,7 @@ export default function Home() {
   const [loading, setLoading] = useState(false);
   const [editingId, setEditingId] = useState(null);
   const [form, setForm] = useState(emptyForm);
+  const [surpriseProfessor, setSurpriseProfessor] = useState(null);
 
   const departmentDropdownRef = useRef(null);
   const engagementDropdownRef = useRef(null);
@@ -142,6 +172,19 @@ export default function Home() {
     setShowForm(true);
     window.scrollTo({ top: 0, behavior: "smooth" });
   }
+
+  function handleSurpriseMe() {
+  if (professors.length === 0) return;
+
+  const randomIndex = Math.floor(Math.random() * professors.length);
+  const randomProfessor = professors[randomIndex];
+
+  setSearch("");
+  setSelectedDepartments([]);
+  setSelectedEngagement([]);
+  setOpenDropdown(null);
+  setSurpriseProfessor(randomProfessor);
+}
 
   function startEdit(prof) {
     setEditingId(prof.id);
@@ -260,39 +303,41 @@ export default function Home() {
     new Set(professors.flatMap((prof) => splitDepartments(prof.department)))
   ).sort();
 
-  const filtered = professors.filter((prof) => {
-    const text = `
-      ${prof.name}
-      ${prof.department}
-      ${prof.role}
-      ${prof.keywords}
-      ${prof.webpage}
-      ${prof.personalPage}
-      ${Array.isArray(prof.engagement) ? prof.engagement.join(" ") : ""}
-    `.toLowerCase();
+  const filtered = surpriseProfessor
+  ? [surpriseProfessor]
+  : professors.filter((prof) => {
+      const text = `
+        ${prof.name}
+        ${prof.department}
+        ${prof.role}
+        ${prof.keywords}
+        ${prof.webpage}
+        ${prof.personalPage}
+        ${Array.isArray(prof.engagement) ? prof.engagement.join(" ") : ""}
+      `.toLowerCase();
 
-    const professorDepartments = splitDepartments(prof.department);
-    const professorEngagement = Array.isArray(prof.engagement)
-      ? prof.engagement
-      : [];
+      const professorDepartments = splitDepartments(prof.department);
+      const professorEngagement = Array.isArray(prof.engagement)
+        ? prof.engagement
+        : [];
 
-    const matchesSearch = text.includes(search.toLowerCase());
+      const matchesSearch = text.includes(search.toLowerCase());
 
-    const matchesDepartment = matchesAnySelected(
-      professorDepartments,
-      selectedDepartments
-    );
+      const matchesDepartment = matchesAnySelected(
+        professorDepartments,
+        selectedDepartments
+      );
 
-    const matchesEngagement = matchesAnySelected(
-      professorEngagement,
-      selectedEngagement
-    );
+      const matchesEngagement = matchesAnySelected(
+        professorEngagement,
+        selectedEngagement
+      );
 
-    return matchesSearch && matchesDepartment && matchesEngagement;
-  });
+      return matchesSearch && matchesDepartment && matchesEngagement;
+    });
 
   const easterEgg = getEasterEgg(search);
-
+  const quantumMode = search.toLowerCase().trim().includes("quantum");
   return (
     <main className="min-h-screen bg-[#F7F4EC] text-[#1F2933]">
       <header className="bg-[#00356B] text-white">
@@ -319,7 +364,10 @@ export default function Home() {
               className="min-h-11 flex-1 border border-[#CFC7B8] bg-[#FBFAF7] px-4 text-sm outline-none focus:border-[#00356B]"
               placeholder="Search by name, role, keyword, department, webpage, or engagement..."
               value={search}
-              onChange={(e) => setSearch(e.target.value)}
+              onChange={(e) => {
+                setSearch(e.target.value);
+                setSurpriseProfessor(null);
+              }}
             />
 
             <div ref={departmentDropdownRef} className="relative md:w-40">
@@ -345,11 +393,13 @@ export default function Home() {
                       <input
                         type="checkbox"
                         checked={selectedDepartments.includes(dept)}
-                        onChange={() =>
+                        onChange={() => {
+                          setSurpriseProfessor(null);
                           setSelectedDepartments((prev) =>
                             toggleArrayValue(prev, dept)
-                          )
-                        }
+                          );
+         
+                        }}
                       />
                       {dept}
                     </label>
@@ -391,11 +441,12 @@ export default function Home() {
                       <input
                         type="checkbox"
                         checked={selectedEngagement.includes(option)}
-                        onChange={() =>
+                        onChange={() => {
+                          setSurpriseProfessor(null);
                           setSelectedEngagement((prev) =>
                             toggleArrayValue(prev, option)
-                          )
-                        }
+                          );
+                        }}
                       />
                       {option}
                     </label>
@@ -413,7 +464,13 @@ export default function Home() {
                 </div>
               )}
             </div>
-
+            <button
+              type="button"
+              onClick={handleSurpriseMe}
+              className="min-h-11 border border-[#3F6F4E] px-4 text-sm font-semibold text-[#3F6F4E] transition hover:bg-[#3F6F4E] hover:text-white"
+            >
+              surprise me
+            </button>
             <button
               onClick={startAdd}
               className="min-h-11 border border-[#00356B] px-4 text-sm font-semibold text-[#00356B] transition hover:bg-[#00356B] hover:text-white"
@@ -555,7 +612,13 @@ export default function Home() {
           </h2>
         </div>
 
-        <div className="divide-y divide-[#D8D2C4] border-y border-[#D8D2C4] bg-white">
+        <div
+          className={
+            quantumMode
+              ? "quantum-effect divide-y divide-[#D8D2C4] border-y border-[#D8D2C4] bg-white"
+              : "divide-y divide-[#D8D2C4] border-y border-[#D8D2C4] bg-white"
+          }
+        >
           {filtered.map((prof) => (
             <article
               key={prof.id}

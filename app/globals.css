@@ -24,3 +24,30 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+@keyframes quantumWobble {
+  0% {
+    transform: translateX(0);
+    filter: blur(0);
+  }
+  25% {
+    transform: translateX(-4px);
+    filter: blur(0.8px);
+  }
+  50% {
+    transform: translateX(4px);
+    filter: blur(0);
+  }
+  75% {
+    transform: translateX(-2px);
+    filter: blur(0.6px);
+  }
+  100% {
+    transform: translateX(0);
+    filter: blur(0);
+  }
+}
+
+.quantum-effect {
+  animation: quantumWobble 0.45s ease-in-out;
+}
