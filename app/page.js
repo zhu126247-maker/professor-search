@@ -20,6 +20,12 @@ function splitKeywords(keywords) {
     .filter(Boolean);
 }
 
+function keywordMatchesSearch(keyword, search) {
+  if (!search.trim()) return false;
+
+  return keyword.toLowerCase().includes(search.toLowerCase().trim());
+}
+
 export default function Home() {
   const [professors, setProfessors] = useState([]);
   const [search, setSearch] = useState("");
@@ -411,14 +417,22 @@ export default function Home() {
 
                   {prof.keywords && (
                     <div className="mt-4 flex flex-wrap gap-2">
-                      {splitKeywords(prof.keywords).map((keyword) => (
-                        <span
-                          key={keyword}
-                          className="border border-[#D8D2C4] bg-[#F6F3EA] px-2.5 py-1 text-xs text-[#1F2933]"
-                        >
-                          {keyword}
-                        </span>
-                      ))}
+                      {splitKeywords(prof.keywords).map((keyword) => {
+                        const isMatch = keywordMatchesSearch(keyword, search);
+
+                        return (
+                          <span
+                            key={keyword}
+                            className={
+                              isMatch
+                                ? "border border-[#3F6F4E] bg-[#E6EFE8] px-2.5 py-1 text-xs font-semibold text-[#1F2933] shadow-[0_0_0_2px_rgba(63,111,78,0.22)] transition"
+                                : "border border-[#D8D2C4] bg-[#F6F3EA] px-2.5 py-1 text-xs text-[#1F2933] transition"
+                            }
+                          >
+                            {keyword}
+                          </span>
+                        );
+                      })}
                     </div>
                   )}
 
@@ -448,7 +462,8 @@ export default function Home() {
 
               {filtered.length === 0 && (
                 <div className="border border-[#CFC7B8] bg-white p-8 text-center text-gray-600">
-                  No professors match your search.
+                  No matching faculty profiles found. Try a broader keyword,
+                  department, or research area.
                 </div>
               )}
             </div>
