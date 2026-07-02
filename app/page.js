@@ -44,7 +44,7 @@ function getEasterEgg(search) {
     query.includes("handsome dan") ||
     query.includes("bulldog") ||
     query.includes("dog") ||
-    query.includes("dan")
+    query.includes("Dan")
   ) {
     return "Handsome Dan approves this directory.";
   }
@@ -231,18 +231,18 @@ export default function Home() {
   const easterEgg = getEasterEgg(search);
 
   return (
-    <main className="min-h-screen bg-[#F6F3EA] text-[#1F2933]">
-      <header className="border-b border-[#D8D2C4] bg-[#00356B] text-white">
-        <div className="mx-auto max-w-6xl px-6 py-10">
-          <p className="mb-4 text-xs font-semibold uppercase tracking-[0.35em] text-[#D7E3D1]">
+    <main className="min-h-screen bg-[#F7F4EC] text-[#1F2933]">
+      <header className="bg-[#00356B] text-white">
+        <div className="mx-auto max-w-6xl px-6 pt-20 pb-10">
+          <p className="mb-3 text-xs font-semibold uppercase tracking-[0.35em] text-[#D7E3D1]">
             CBEY
           </p>
 
-          <h1 className="max-w-4xl font-serif text-4xl font-semibold leading-tight md:text-5xl">
+          <h1 className="font-serif text-4xl font-semibold tracking-tight md:text-5xl">
             Environmental Faculty Directory
           </h1>
 
-          <p className="mt-5 max-w-3xl text-base leading-7 text-[#E6EEF7] md:text-lg">
+          <p className="mt-4 max-w-3xl text-base leading-7 text-[#E6EEF7]">
             Search faculty working across climate, energy, markets, policy,
             conservation, and environmental systems.
           </p>
@@ -250,31 +250,60 @@ export default function Home() {
       </header>
 
       <section className="border-b border-[#D8D2C4] bg-white">
-        <div className="mx-auto flex max-w-6xl flex-col gap-4 px-6 py-5 md:flex-row md:items-center md:justify-between">
-          <div>
-            <p className="text-sm font-semibold uppercase tracking-wide text-[#3F6F4E]">
-              Searchable research database
-            </p>
-            <p className="mt-1 text-sm text-gray-600">
-              Browse by name, department, role, webpage, or associated research
-              keywords.
-            </p>
+        <div className="mx-auto max-w-6xl px-6 py-4">
+          <div className="flex flex-col gap-3 md:flex-row md:items-center">
+            <input
+              className="min-h-11 flex-1 border border-[#CFC7B8] bg-[#FBFAF7] px-4 text-sm outline-none focus:border-[#00356B]"
+              placeholder="Search by name, role, keyword, department, or webpage..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+
+            <select
+              className="min-h-11 border border-[#CFC7B8] bg-[#FBFAF7] px-4 text-sm outline-none focus:border-[#00356B] md:w-64"
+              value={departmentFilter}
+              onChange={(e) => setDepartmentFilter(e.target.value)}
+            >
+              {departments.map((dept) => (
+                <option key={dept} value={dept}>
+                  {dept === "All" ? "All departments" : dept}
+                </option>
+              ))}
+            </select>
+
+            <button
+              onClick={startAdd}
+              className="min-h-11 border border-[#00356B] px-4 text-sm font-semibold text-[#00356B] transition hover:bg-[#00356B] hover:text-white"
+            >
+              + Add record
+            </button>
           </div>
 
-          <button
-            onClick={startAdd}
-            className="border border-[#00356B] bg-[#00356B] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-white hover:text-[#00356B]"
-          >
-            Add Professor
-          </button>
+          <div className="mt-3 flex flex-col gap-2 text-sm text-gray-600 md:flex-row md:items-center md:justify-between">
+            <p>
+              Showing{" "}
+              <span className="font-semibold text-[#00356B]">
+                {filtered.length}
+              </span>{" "}
+              of{" "}
+              <span className="font-semibold text-[#00356B]">
+                {professors.length}
+              </span>{" "}
+              faculty profile(s)
+            </p>
+
+            <p className="text-xs uppercase tracking-wide text-[#3F6F4E]">
+              Searchable research database
+            </p>
+          </div>
         </div>
       </section>
 
-      <section className="mx-auto max-w-6xl px-6 py-8">
+      <section className="mx-auto max-w-6xl px-6 py-7">
         {showForm && (
           <form
             onSubmit={handleSubmit}
-            className="mb-8 border border-[#CFC7B8] bg-white p-5"
+            className="mb-6 border border-[#CFC7B8] bg-white p-5"
           >
             <div className="mb-4 flex items-center justify-between gap-4 border-b border-[#E4DED2] pb-3">
               <h2 className="font-serif text-2xl font-semibold text-[#00356B]">
@@ -350,175 +379,115 @@ export default function Home() {
         )}
 
         {easterEgg && (
-          <div className="mb-5 border border-[#00356B] bg-white px-5 py-4 text-sm font-semibold text-[#00356B]">
+          <div className="mb-5 border-l-4 border-[#00356B] bg-white px-5 py-3 text-sm font-semibold text-[#00356B]">
             {easterEgg}
           </div>
         )}
 
-        <div className="grid gap-6 md:grid-cols-[270px_1fr]">
-          <aside className="h-fit border border-[#CFC7B8] bg-white p-5">
-            <h2 className="border-b border-[#E4DED2] pb-3 font-serif text-2xl font-semibold text-[#00356B]">
-              Filters
-            </h2>
+        <div className="mb-4 border-b border-[#CFC7B8] pb-3">
+          <p className="text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]">
+            Results
+          </p>
+          <h2 className="font-serif text-2xl font-semibold text-[#00356B]">
+            Faculty Profiles
+          </h2>
+        </div>
 
-            <div className="mt-5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                Search
-              </label>
-              <input
-                className="mt-2 w-full border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B]"
-                placeholder="Name, role, keyword..."
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-              />
-            </div>
+        <div className="divide-y divide-[#D8D2C4] border-y border-[#D8D2C4] bg-white">
+          {filtered.map((prof) => (
+            <article key={prof.id} className="px-5 py-4 transition hover:bg-[#FBFAF7]">
+              <div className="flex flex-col gap-3 md:flex-row md:items-start md:justify-between">
+                <div>
+                  <h3 className="font-serif text-2xl font-semibold text-[#00356B]">
+                    {prof.name}
+                  </h3>
 
-            <div className="mt-5">
-              <label className="text-xs font-semibold uppercase tracking-wide text-gray-600">
-                Department
-              </label>
-              <select
-                className="mt-2 w-full border border-[#CFC7B8] bg-[#FBFAF7] p-3 outline-none focus:border-[#00356B]"
-                value={departmentFilter}
-                onChange={(e) => setDepartmentFilter(e.target.value)}
-              >
-                {departments.map((dept) => (
-                  <option key={dept} value={dept}>
-                    {dept}
-                  </option>
-                ))}
-              </select>
-            </div>
-
-            <div className="mt-6 border-t border-[#E4DED2] pt-4">
-              <p className="text-sm text-gray-600">
-                Showing{" "}
-                <span className="font-semibold text-[#00356B]">
-                  {filtered.length}
-                </span>{" "}
-                of{" "}
-                <span className="font-semibold text-[#00356B]">
-                  {professors.length}
-                </span>{" "}
-                professor(s)
-              </p>
-            </div>
-          </aside>
-
-          <section>
-            <div className="mb-4 flex items-end justify-between border-b border-[#CFC7B8] pb-3">
-              <div>
-                <p className="text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]">
-                  Results
-                </p>
-                <h2 className="font-serif text-2xl font-semibold text-[#00356B]">
-                  Faculty Profiles
-                </h2>
-              </div>
-            </div>
-
-            <div className="grid gap-4">
-              {filtered.map((prof) => (
-                <article
-                  key={prof.id}
-                  className="border border-[#CFC7B8] bg-white p-5 transition hover:border-[#00356B]"
-                >
-                  <div className="flex flex-col gap-4 md:flex-row md:items-start md:justify-between">
-                    <div>
-                      <h3 className="font-serif text-2xl font-semibold text-[#00356B]">
-                        {prof.name}
-                      </h3>
-
-                      {prof.role && (
-                        <p className="mt-1 text-base text-[#1F2933]">
-                          {prof.role}
-                        </p>
-                      )}
-
-                      {prof.department && (
-                        <div className="mt-2 flex flex-wrap gap-2">
-                          {splitDepartments(prof.department).map((dept) => (
-                            <span
-                              key={dept}
-                              className="text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]"
-                            >
-                              {dept}
-                            </span>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    <div className="flex shrink-0 gap-2">
-                      <button
-                        onClick={() => startEdit(prof)}
-                        className="border border-[#CFC7B8] px-3 py-1.5 text-sm hover:border-[#00356B] hover:text-[#00356B]"
-                      >
-                        Edit
-                      </button>
-
-                      <button
-                        onClick={() => handleDelete(prof)}
-                        className="border border-red-300 px-3 py-1.5 text-sm text-red-700 hover:bg-red-50"
-                      >
-                        Delete
-                      </button>
-                    </div>
-                  </div>
-
-                  {prof.keywords && (
-                    <div className="mt-4 flex flex-wrap gap-2">
-                      {splitKeywords(prof.keywords).map((keyword) => {
-                        const isMatch = keywordMatchesSearch(keyword, search);
-
-                        return (
-                          <span
-                            key={keyword}
-                            className={
-                              isMatch
-                                ? "border border-[#3F6F4E] bg-[#E6EFE8] px-2.5 py-1 text-xs font-semibold text-[#1F2933] shadow-[0_0_0_2px_rgba(63,111,78,0.22)] transition"
-                                : "border border-[#D8D2C4] bg-[#F6F3EA] px-2.5 py-1 text-xs text-[#1F2933] transition"
-                            }
-                          >
-                            {keyword}
-                          </span>
-                        );
-                      })}
-                    </div>
+                  {prof.role && (
+                    <p className="mt-1 text-sm text-[#1F2933]">{prof.role}</p>
                   )}
 
-                  <div className="mt-5 flex flex-wrap gap-5 border-t border-[#E4DED2] pt-4">
-                    {prof.webpage && (
-                      <a
-                        className="text-sm font-semibold text-[#00356B] underline underline-offset-4 hover:text-[#3F6F4E]"
-                        href={prof.webpage}
-                        target="_blank"
-                      >
-                        University Webpage
-                      </a>
-                    )}
+                  {prof.department && (
+                    <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1">
+                      {splitDepartments(prof.department).map((dept) => (
+                        <span
+                          key={dept}
+                          className="text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]"
+                        >
+                          {dept}
+                        </span>
+                      ))}
+                    </div>
+                  )}
+                </div>
 
-                    {prof.personalPage && (
-                      <a
-                        className="text-sm font-semibold text-[#00356B] underline underline-offset-4 hover:text-[#3F6F4E]"
-                        href={prof.personalPage}
-                        target="_blank"
-                      >
-                        Personal/Lab Page
-                      </a>
-                    )}
-                  </div>
-                </article>
-              ))}
+                <div className="flex shrink-0 gap-2">
+                  <button
+                    onClick={() => startEdit(prof)}
+                    className="text-sm font-medium text-[#00356B] underline underline-offset-4 hover:text-[#3F6F4E]"
+                  >
+                    Edit
+                  </button>
 
-              {filtered.length === 0 && (
-                <div className="border border-[#CFC7B8] bg-white p-8 text-center text-gray-600">
-                  No matching faculty profiles found. Try a broader keyword,
-                  department, or research area.
+                  <button
+                    onClick={() => handleDelete(prof)}
+                    className="text-sm font-medium text-red-700 underline underline-offset-4 hover:text-red-900"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+
+              {prof.keywords && (
+                <div className="mt-3 flex flex-wrap gap-2">
+                  {splitKeywords(prof.keywords).map((keyword) => {
+                    const isMatch = keywordMatchesSearch(keyword, search);
+
+                    return (
+                      <span
+                        key={keyword}
+                        className={
+                          isMatch
+                            ? "border border-[#3F6F4E] bg-[#E6EFE8] px-2 py-0.5 text-xs font-semibold text-[#1F2933] shadow-[0_0_0_2px_rgba(63,111,78,0.2)] transition"
+                            : "border border-[#D8D2C4] bg-[#F7F4EC] px-2 py-0.5 text-xs text-[#1F2933] transition"
+                        }
+                      >
+                        {keyword}
+                      </span>
+                    );
+                  })}
                 </div>
               )}
+
+              <div className="mt-3 flex flex-wrap gap-5">
+                {prof.webpage && (
+                  <a
+                    className="text-sm font-semibold text-[#00356B] underline underline-offset-4 hover:text-[#3F6F4E]"
+                    href={prof.webpage}
+                    target="_blank"
+                  >
+                    University Webpage
+                  </a>
+                )}
+
+                {prof.personalPage && (
+                  <a
+                    className="text-sm font-semibold text-[#00356B] underline underline-offset-4 hover:text-[#3F6F4E]"
+                    href={prof.personalPage}
+                    target="_blank"
+                  >
+                    Personal/Lab Page
+                  </a>
+                )}
+              </div>
+            </article>
+          ))}
+
+          {filtered.length === 0 && (
+            <div className="bg-white p-8 text-center text-gray-600">
+              No matching faculty profiles found. Try a broader keyword,
+              department, or research area.
             </div>
-          </section>
+          )}
         </div>
       </section>
 
