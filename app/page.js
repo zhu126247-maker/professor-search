@@ -26,6 +26,30 @@ function keywordMatchesSearch(keyword, search) {
   return keyword.toLowerCase().includes(search.toLowerCase().trim());
 }
 
+function getEasterEgg(search) {
+  const query = search.toLowerCase().trim();
+
+  if (!query) return null;
+
+  if (
+    query.includes("handsome dan") ||
+    query.includes("bulldog") ||
+    query.includes("dog")
+  ) {
+    return "Handsome Dan approves this directory.";
+  }
+
+  if (query.includes("carbon")) {
+    return "Carbon found. Now price it.";
+  }
+
+  if (query.includes("cbey")) {
+    return "Connecting business and the environment.";
+  }
+
+  return null;
+}
+
 export default function Home() {
   const [professors, setProfessors] = useState([]);
   const [search, setSearch] = useState("");
@@ -192,6 +216,8 @@ export default function Home() {
     return matchesSearch && matchesDepartment;
   });
 
+  const easterEgg = getEasterEgg(search);
+
   return (
     <main className="min-h-screen bg-[#F6F3EA] text-[#1F2933]">
       <header className="border-b border-[#D8D2C4] bg-[#00356B] text-white">
@@ -309,6 +335,12 @@ export default function Home() {
                 : "Save Professor"}
             </button>
           </form>
+        )}
+
+        {easterEgg && (
+          <div className="mb-5 border border-[#00356B] bg-white px-5 py-4 text-sm font-semibold text-[#00356B]">
+            {easterEgg}
+          </div>
         )}
 
         <div className="grid gap-6 md:grid-cols-[270px_1fr]">
@@ -472,9 +504,15 @@ export default function Home() {
       </section>
 
       <footer className="border-t border-[#D8D2C4] bg-white">
-        <div className="mx-auto max-w-6xl px-6 py-6 text-sm text-gray-600">
-          Built as a searchable directory for CBEY-related environmental
-          research connections.
+        <div className="group mx-auto max-w-6xl px-6 py-6 text-sm text-gray-600">
+          <span className="group-hover:hidden">
+            Built as a searchable directory for CBEY-related environmental
+            research connections.
+          </span>
+
+          <span className="hidden text-[#3F6F4E] group-hover:inline">
+            🌱 Built with caffeine, Airtable, and optimism.
+          </span>
         </div>
       </footer>
     </main>
