@@ -20,6 +20,15 @@ function splitKeywords(keywords) {
     .filter(Boolean);
 }
 
+function splitDepartments(department) {
+  if (!department) return [];
+
+  return department
+    .split(",")
+    .map((dept) => dept.trim())
+    .filter(Boolean);
+}
+
 function keywordMatchesSearch(keyword, search) {
   if (!search.trim()) return false;
 
@@ -34,7 +43,8 @@ function getEasterEgg(search) {
   if (
     query.includes("handsome dan") ||
     query.includes("bulldog") ||
-    query.includes("dog")
+    query.includes("dog") ||
+    query.includes("dan")
   ) {
     return "Handsome Dan approves this directory.";
   }
@@ -44,7 +54,7 @@ function getEasterEgg(search) {
   }
 
   if (query.includes("cbey")) {
-    return "Connecting business and the environment.";
+    return "Connecting business and the environment :)";
   }
 
   return null;
@@ -192,9 +202,7 @@ export default function Home() {
     "All",
     ...Array.from(
       new Set(
-        professors
-          .map((prof) => prof.department)
-          .filter(Boolean)
+        professors.flatMap((prof) => splitDepartments(prof.department))
       )
     ).sort(),
   ];
@@ -209,9 +217,13 @@ export default function Home() {
       ${prof.personalPage}
     `.toLowerCase();
 
+    const professorDepartments = splitDepartments(prof.department);
+
     const matchesSearch = text.includes(search.toLowerCase());
+
     const matchesDepartment =
-      departmentFilter === "All" || prof.department === departmentFilter;
+      departmentFilter === "All" ||
+      professorDepartments.includes(departmentFilter);
 
     return matchesSearch && matchesDepartment;
   });
@@ -424,9 +436,16 @@ export default function Home() {
                       )}
 
                       {prof.department && (
-                        <p className="mt-2 text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]">
-                          {prof.department}
-                        </p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          {splitDepartments(prof.department).map((dept) => (
+                            <span
+                              key={dept}
+                              className="text-xs font-semibold uppercase tracking-wide text-[#3F6F4E]"
+                            >
+                              {dept}
+                            </span>
+                          ))}
+                        </div>
                       )}
                     </div>
 
@@ -511,7 +530,7 @@ export default function Home() {
           </span>
 
           <span className="hidden text-[#3F6F4E] group-hover:inline">
-            🌱 Built with caffeine, Airtable, and optimism.
+            🌱 Built with Airtable.
           </span>
         </div>
       </footer>
